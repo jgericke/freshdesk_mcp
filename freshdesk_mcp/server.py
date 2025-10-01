@@ -17,6 +17,10 @@ mcp = FastMCP("freshdesk-mcp")
 FRESHDESK_API_KEY = os.getenv("FRESHDESK_API_KEY")
 FRESHDESK_DOMAIN = os.getenv("FRESHDESK_DOMAIN")
 
+if not FRESHDESK_API_KEY or not FRESHDESK_DOMAIN:
+    logging.error("Please set FRESHDESK_API_KEY and FRESHDESK_DOMAIN environment variables")
+    exit(1)
+
 
 def parse_link_header(link_header: str) -> Dict[str, Optional[int]]:
     """Parse the Link header to extract pagination information.
@@ -1245,7 +1249,17 @@ async def delete_ticket_summary(ticket_id: int) -> Dict[str, Any]:
 
 def main():
     logging.info("Starting Freshdesk MCP server")
-    mcp.run(transport='stdio')
+    mcp.settings.host = "0.0.0.0"
+    mcp.settings.port = 8000
+    try:
+        mcp.run(transport="sse")
+    except KeyboardInterrupt:
+        logging.info("Received interrupt signal, shutting down gracefully...")
+    except SystemExit:
+        logging.info("Received system exit signal, shutting down gracefully...")
+    finally:
+        logging.info("Freshdesk MCP server stopped")
+
 
 if __name__ == "__main__":
     main()
